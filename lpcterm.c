@@ -37,6 +37,7 @@ Portions Copyright (c) by Aeolus Development 2004 http://www.aeolusdevelopment.c
 #endif // defined(_WIN32)
 #include "lpc21isp.h"
 #include "lpcterm.h"
+#include "errors.h"
 
 #ifdef TERMINAL_SUPPORT
 /***************************** Terminal *********************************/
@@ -68,7 +69,6 @@ BOOL CheckTerminalParameters(ISP_ENVIRONMENT *IspEnvironment, char* pstr)
 
     return FALSE;
 }
-
 void Terminal(ISP_ENVIRONMENT *IspEnvironment)
 {
     if (IspEnvironment->TerminalAfterUpload || IspEnvironment->TerminalOnly)
@@ -93,13 +93,16 @@ void Terminal(ISP_ENVIRONMENT *IspEnvironment)
         {
             ReceiveComPort(IspEnvironment, buffer, sizeof(buffer) - 1, &realsize, 0,200);          // Check for received characters
 
-            if (realsize)
-            {
-                write(1, buffer, realsize);
+			if (realsize){
+				size_t wr=write(1, buffer, realsize);
+				if(wr!=realsize)
+					writeError(realsize,wr);
                 fflush(stdout);
                 if (IspEnvironment->LogFile)     // When logging is turned on, then copy output to logfile
                 {
-                    write(fdlogfile, buffer, realsize);
+                    wr=write(fdlogfile, buffer, realsize);
+                    if(wr!=realsize)
+						writeError(realsize,wr);
                 }
             }
 
@@ -116,7 +119,9 @@ void Terminal(ISP_ENVIRONMENT *IspEnvironment)
 
                 if (IspEnvironment->LocalEcho)
                 {
-                    write(1, buffer, 1);
+					size_t wr=write(1, buffer, 1);
+					if(wr!=1)
+						writeError(1,wr);
                 }
 
                 SendComPort(IspEnvironment, buffer);

@@ -286,4 +286,4 @@ void SendComPortBlock(ISP_ENVIRONMENT *IspEnvironment, const void *s, size_t n);
 int ReceiveComPortBlockComplete(ISP_ENVIRONMENT *IspEnvironment, void *block, size_t size, unsigned timeout);
 void ClearSerialPortBuffers(ISP_ENVIRONMENT *IspEnvironment);
 
-int lpctest(char* FileName);
+//int lpctest(char* FileName); //Unused
