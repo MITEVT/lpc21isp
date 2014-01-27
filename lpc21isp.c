@@ -1969,6 +1969,9 @@ static int LoadFile(ISP_ENVIRONMENT *IspEnvironment, const char *filename, int F
 static int LoadFiles1(ISP_ENVIRONMENT *IspEnvironment, const FILE_LIST *file)
 {
     int ret_val;
+	if(!file->prev){
+		return 0; //last file
+	}
 
     if(!file || !file->prev)
     {
@@ -1978,7 +1981,7 @@ static int LoadFiles1(ISP_ENVIRONMENT *IspEnvironment, const FILE_LIST *file)
     DebugPrintf( 3, "Follow file list %s\n", file->name);
 
     ret_val = LoadFiles1( IspEnvironment, file->prev);
-    if( ret_val != 0)
+    if( ret_val != 0 && file->prev != 0)
     {
         return ret_val;
     }
@@ -2013,6 +2016,7 @@ static int LoadFiles(ISP_ENVIRONMENT *IspEnvironment)
     ret_val = LoadFiles1(IspEnvironment, IspEnvironment->f_list);
     if( ret_val != 0)
     {
+		fprintf(stderr,"LoadFiles1 returned %d instead of 0 exiting\n",ret_val);
 		exit(1); // return ret_val;
     }
 
@@ -2053,11 +2057,12 @@ int PerformActions(ISP_ENVIRONMENT *IspEnvironment)
     /* Download requested, read in the input file.                  */
     if (IspEnvironment->ProgramChip)
     {
+		puts("LoadFile");
         LoadFiles(IspEnvironment);
     }
-
+	
     OpenSerialPort(IspEnvironment);   /* Open the serial port to the microcontroller. */
-
+	puts("Serial port open");
     ResetTarget(IspEnvironment, PROGRAM_MODE);
 
     ClearSerialPortBuffers(IspEnvironment);
@@ -2128,7 +2133,7 @@ int main(int argc, char *argv[])
 
     // Initialize debug level
     debug_level = 2;
-
+	FILE_LIST nullfile = {"", NULL, 0};
     // Initialize ISP Environment
     memset(&IspEnvironment, 0, sizeof(IspEnvironment));       // Clear the IspEnviroment to a known value
     IspEnvironment.micro       = NXP_ARM;                     // Default Micro
@@ -2136,6 +2141,7 @@ int main(int argc, char *argv[])
     IspEnvironment.ProgramChip = TRUE;                        // Default to Programming the chip
     IspEnvironment.nQuestionMarks = 100;
     IspEnvironment.DoNotStart = 0;
+    IspEnvironment.f_list = &nullfile;
     ReadArguments(&IspEnvironment, argc, argv);               // Read and parse the command line
 
     return PerformActions(&IspEnvironment);                   // Do as requested !

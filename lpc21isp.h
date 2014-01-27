@@ -57,7 +57,7 @@ Portions Copyright (c) by Aeolus Development 2004 http://www.aeolusdevelopment.c
 #endif
 
 // The Required features can be enabled / disabled here
-#define LPC_SUPPORT
+#define LPC_SUPPORT 1
 
 #ifndef COMPILE_FOR_LPC21
 #define AD_SUPPORT
