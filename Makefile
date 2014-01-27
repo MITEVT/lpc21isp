@@ -15,7 +15,7 @@ ifneq ($(findstring Darwin,$(OSTYPE)),)
 CFLAGS+=-D__APPLE__
 endif
 
-CFLAGS	+= -Wall -Wextra -O2 -flto -s -DCOMPILE_FOR_LINUX
+CFLAGS	+= -Wall -Wextra -O2 -flto -s
 
 objects=lpcprog.o adprog.o lpcterm.o lpc21isp.o errors.o
 
