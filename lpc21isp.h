@@ -57,7 +57,7 @@ Portions Copyright (c) by Aeolus Development 2004 http://www.aeolusdevelopment.c
 #endif
 
 // The Required features can be enabled / disabled here
-#define LPC_SUPPORT
+#define LPC_SUPPORT 1
 
 #ifndef COMPILE_FOR_LPC21
 #define AD_SUPPORT
@@ -286,4 +286,4 @@ void SendComPortBlock(ISP_ENVIRONMENT *IspEnvironment, const void *s, size_t n);
 int ReceiveComPortBlockComplete(ISP_ENVIRONMENT *IspEnvironment, void *block, size_t size, unsigned timeout);
 void ClearSerialPortBuffers(ISP_ENVIRONMENT *IspEnvironment);
 
-int lpctest(char* FileName);
+//int lpctest(char* FileName); //Unused

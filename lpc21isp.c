@@ -39,6 +39,7 @@ Portions Copyright (c) by Aeolus Development 2004 http://www.aeolusdevelopment.c
 #include "adprog.h"
 #include "lpcprog.h"
 #include "lpcterm.h"
+#include "errors.h"
 
 /*
 Change-History:
@@ -615,8 +616,9 @@ void SendComPortBlock(ISP_ENVIRONMENT *IspEnvironment, const void *s, size_t n)
 
 #if defined COMPILE_FOR_LINUX || defined COMPILE_FOR_LPC21
 
-    write(IspEnvironment->fdCom, s, n);
-
+    size_t wr=write(IspEnvironment->fdCom, s, n);
+	if(wr!=n)
+		writeError(n,wr);
 #endif // defined COMPILE_FOR_LINUX || defined COMPILE_FOR_LPC21
 }
 
@@ -757,8 +759,9 @@ int getch(void)
     char ch;
 
     /* Read in one character */
-    read(0,&ch,1);
-
+    size_t rr=read(0,&ch,1);
+	if(rr!=1)
+		readError(1,rr);
     return ch;
 }
 #endif // defined COMPILE_FOR_LINUX || defined COMPILE_FOR_CYGWIN
@@ -1669,7 +1672,9 @@ void ReadHexFile(ISP_ENVIRONMENT *IspEnvironment)
         {
             int fdout;
             fdout = open("debugout.bin", O_RDWR | O_BINARY | O_CREAT | O_TRUNC, 0777);
-            write(fdout, IspEnvironment->BinaryContent, IspEnvironment->BinaryLength);
+			size_t wr=write(fdout, IspEnvironment->BinaryContent, IspEnvironment->BinaryLength);
+			if(wr!=IspEnvironment->BinaryLength)
+				writeError(IspEnvironment->BinaryLength,wr);
             close(fdout);
         }
     }
@@ -1725,8 +1730,9 @@ static int LoadFile(ISP_ENVIRONMENT *IspEnvironment, const char *filename, int F
 
     BinaryMemSize = IspEnvironment->BinaryLength;
 
-    read(fd, FileContent, FileLength);
-
+    size_t rr=read(fd, FileContent, FileLength);
+	if(rr!=FileLength)
+		readError(FileLength,rr);
     close(fd);
 
     DebugPrintf(2, "File %s:\n\tloaded...\n", filename);
@@ -1935,7 +1941,9 @@ static int LoadFile(ISP_ENVIRONMENT *IspEnvironment, const char *filename, int F
         {
             int fdout;
             fdout = open("debugout.bin", O_RDWR | O_BINARY | O_CREAT | O_TRUNC, 0777);
-            write(fdout, IspEnvironment->BinaryContent, IspEnvironment->BinaryLength);
+			size_t wr=write(fdout, IspEnvironment->BinaryContent, IspEnvironment->BinaryLength);
+			if(wr!=IspEnvironment->BinaryLength)
+				writeError(IspEnvironment->BinaryLength,wr);
             close(fdout);
         }
 
@@ -1961,6 +1969,9 @@ static int LoadFile(ISP_ENVIRONMENT *IspEnvironment, const char *filename, int F
 static int LoadFiles1(ISP_ENVIRONMENT *IspEnvironment, const FILE_LIST *file)
 {
     int ret_val;
+	if(!file->prev){
+		return 0; //last file
+	}
 
     if(!file || !file->prev)
     {
@@ -1970,7 +1981,7 @@ static int LoadFiles1(ISP_ENVIRONMENT *IspEnvironment, const FILE_LIST *file)
     DebugPrintf( 3, "Follow file list %s\n", file->name);
 
     ret_val = LoadFiles1( IspEnvironment, file->prev);
-    if( ret_val != 0)
+    if( ret_val != 0 && file->prev != 0)
     {
         return ret_val;
     }
@@ -2005,6 +2016,7 @@ static int LoadFiles(ISP_ENVIRONMENT *IspEnvironment)
     ret_val = LoadFiles1(IspEnvironment, IspEnvironment->f_list);
     if( ret_val != 0)
     {
+		fprintf(stderr,"LoadFiles1 returned %d instead of 0 exiting\n",ret_val);
 		exit(1); // return ret_val;
     }
 
@@ -2026,7 +2038,9 @@ static int LoadFiles(ISP_ENVIRONMENT *IspEnvironment)
          int fdout;
 		 DebugPrintf( 1, "Dumping image file.\n");
          fdout = open("debugout.bin", O_RDWR | O_BINARY | O_CREAT | O_TRUNC, 0777);
-         write(fdout, IspEnvironment->BinaryContent, IspEnvironment->BinaryLength);
+         size_t wr=write(fdout, IspEnvironment->BinaryContent, IspEnvironment->BinaryLength);
+         if(wr!=IspEnvironment->BinaryLength)
+			writeError(IspEnvironment->BinaryLength,wr);
          close(fdout);
     }
     return 0;
@@ -2043,11 +2057,12 @@ int PerformActions(ISP_ENVIRONMENT *IspEnvironment)
     /* Download requested, read in the input file.                  */
     if (IspEnvironment->ProgramChip)
     {
+		puts("LoadFile");
         LoadFiles(IspEnvironment);
     }
-
+	
     OpenSerialPort(IspEnvironment);   /* Open the serial port to the microcontroller. */
-
+	puts("Serial port open");
     ResetTarget(IspEnvironment, PROGRAM_MODE);
 
     ClearSerialPortBuffers(IspEnvironment);
@@ -2118,7 +2133,7 @@ int main(int argc, char *argv[])
 
     // Initialize debug level
     debug_level = 2;
-
+	FILE_LIST nullfile = {"", NULL, 0};
     // Initialize ISP Environment
     memset(&IspEnvironment, 0, sizeof(IspEnvironment));       // Clear the IspEnviroment to a known value
     IspEnvironment.micro       = NXP_ARM;                     // Default Micro
@@ -2126,6 +2141,7 @@ int main(int argc, char *argv[])
     IspEnvironment.ProgramChip = TRUE;                        // Default to Programming the chip
     IspEnvironment.nQuestionMarks = 100;
     IspEnvironment.DoNotStart = 0;
+    IspEnvironment.f_list = &nullfile;
     ReadArguments(&IspEnvironment, argc, argv);               // Read and parse the command line
 
     return PerformActions(&IspEnvironment);                   // Do as requested !
@@ -2166,7 +2182,7 @@ void DumpString(int level, const void *b, size_t size, const char *prefix_string
     DebugPrintf(level, "'\n");
 }
 
-#if !defined COMPILE_FOR_LPC21
+/*#if !defined COMPILE_FOR_LPC21
 int lpctest(char* FileName)
 {
     ISP_ENVIRONMENT IspEnvironment;
@@ -2189,4 +2205,4 @@ int lpctest(char* FileName)
 
     return PerformActions(&IspEnvironment);                    // Do as requested !
 }
-#endif
+#endif*/

@@ -15,19 +15,14 @@ ifneq ($(findstring Darwin,$(OSTYPE)),)
 CFLAGS+=-D__APPLE__
 endif
 
-CFLAGS	+= -Wall -static
+CFLAGS	+= -Wall -Wextra -O2 -flto -s
 
-adprog.o: adprog.c $(GLOBAL_DEP)
-	$(CC) $(CDEBUG) $(CFLAGS) -c -o adprog.o adprog.c
+objects=lpcprog.o adprog.o lpcterm.o lpc21isp.o errors.o
 
-lpcprog.o: lpcprog.c $(GLOBAL_DEP)
-	$(CC) $(CDEBUG) $(CFLAGS) -c -o lpcprog.o lpcprog.c
-
-lpcterm.o: lpcterm.c $(GLOBAL_DEP)
-	$(CC) $(CDEBUG) $(CFLAGS) -c -o lpcterm.o lpcterm.c
-
-lpc21isp: lpc21isp.c adprog.o lpcprog.o lpcterm.o $(GLOBAL_DEP)
-	$(CC) $(CDEBUG) $(CFLAGS) -o lpc21isp.out lpc21isp.c adprog.o lpcprog.o lpcterm.o
+lpc21isp: $(objects) $(GLOBAL_DEP)
+	$(CC) -o lpc21isp $(CDEBUG) $(CFLAGS) $(objects)
+%.o: %.c
+	$(CC) $(CDEBUG) $(CFLAGS) -c $< -o $@
 
 clean:
-	$(RM) adprog.o lpcprog.o lpcterm.o lpc21isp.out
+	$(RM) $(objects) lpc21isp
