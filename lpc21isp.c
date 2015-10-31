@@ -858,11 +858,11 @@ error rather abruptly terminates the program.
 */
 static void ControlModemLines(ISP_ENVIRONMENT *IspEnvironment, unsigned char DTR, unsigned char RTS)
 {
-    //handle wether to invert the control lines:
+    //handle whether to invert the control lines:
     DTR ^= IspEnvironment->ControlLinesInverted;
     RTS ^= IspEnvironment->ControlLinesInverted;
 
-    //handle wether to swap the control lines
+    //handle whether to swap the control lines
     if (IspEnvironment->ControlLinesSwapped)
     {
         unsigned char tempRTS;
@@ -2063,7 +2063,9 @@ int PerformActions(ISP_ENVIRONMENT *IspEnvironment)
 	
     OpenSerialPort(IspEnvironment);   /* Open the serial port to the microcontroller. */
 	puts("Serial port open");
-    ResetTarget(IspEnvironment, PROGRAM_MODE);
+
+      if (!IspEnvironment->TerminalOnly)
+            ResetTarget(IspEnvironment, PROGRAM_MODE);
 
     ClearSerialPortBuffers(IspEnvironment);
 
@@ -2092,13 +2094,15 @@ int PerformActions(ISP_ENVIRONMENT *IspEnvironment)
         }
     }
 
-    if (IspEnvironment->StartAddress == 0 || IspEnvironment->TerminalOnly)
-    {
-        /* Only reset target if startaddress = 0
-        * Otherwise stay with the running program as started in Download()
-        */
-        ResetTarget(IspEnvironment, RUN_MODE);
-    }
+      if (IspEnvironment->StartAddress == 0 || IspEnvironment->TerminalOnly)
+      {
+         /* Only reset target if startaddress = 0
+         Otherwise stay with the running program as started in Download() */
+        
+            ResetTarget(IspEnvironment, RUN_MODE);
+      } else {
+            ResetTarget(IspEnvironment, RUN_MODE);
+      }
 
     debug_level = 1;    /* From now on there is no more debug output !! */
                                         /* Therefore switch it off...                   */
