@@ -69,6 +69,9 @@ BOOL CheckTerminalParameters(ISP_ENVIRONMENT *IspEnvironment, char* pstr)
 
     return FALSE;
 }
+
+static BOOL escape_sequence;
+
 void Terminal(ISP_ENVIRONMENT *IspEnvironment)
 {
     if (IspEnvironment->TerminalAfterUpload || IspEnvironment->TerminalOnly)
@@ -89,7 +92,9 @@ void Terminal(ISP_ENVIRONMENT *IspEnvironment)
         DebugPrintf(1, "Terminal started (press Escape to abort)\n\n");
         fflush(stdout);
 
-        do
+        escape_sequence = FALSE;
+
+        while(1)
         {
             ReceiveComPort(IspEnvironment, buffer, sizeof(buffer) - 1, &realsize, 0,200);          // Check for received characters
 
@@ -110,12 +115,64 @@ void Terminal(ISP_ENVIRONMENT *IspEnvironment)
             if (kbhit())
             {
                 ch = getch();
-                if (ch == 0x1b)
-                {
-                    break;
-                }
+                // if (escape_sequence) {
+
+                // } else if (ch == 0x1b) {
+                //     escape_sequence = true;
+                // }
+                // if (ch == 0x1b || escape_sequence)
+                // {
+                    
+                //     break;
+                // }
+
                 buffer[0] = (unsigned char)ch;
                 buffer[1] = 0;
+
+                if (ch == 0x1b) {
+                    if (kbhit()) {
+                        char t = getch();
+                        if (t == '[') { // We are in an escape character
+                            if (kbhit()) {
+                                t = getch();
+                                switch (t) {
+                                    case 'A': // Up arrow
+                                        buffer[0] = '\033';
+                                        buffer[1] = '[';
+                                        buffer[2] = 'A';
+                                        buffer[3] = 0;
+                                        write(1, buffer, 3);
+                                        break;
+                                    case 'B': // Down arrow
+                                        buffer[0] = '\033';
+                                        buffer[1] = '[';
+                                        buffer[2] = 'B';
+                                        buffer[3] = 0;
+                                        write(1, buffer, 3);
+                                        break;
+                                    case 'C': // Right arrow
+                                        buffer[0] = '\033';
+                                        buffer[1] = '[';
+                                        buffer[2] = 'C';
+                                        buffer[3] = 0;
+                                        write(1, buffer, 3);
+                                        break;
+                                    case 'D': // Left arrow
+                                        buffer[0] = '\033';
+                                        buffer[1] = '[';
+                                        buffer[2] = 'D';
+                                        buffer[3] = 0;
+                                        write(1, buffer, 3);
+                                        break;
+                                }
+                            } else {
+                                break;
+                            }
+                        }
+                    } else {
+                        break;
+                    }
+                }
 
                 if (IspEnvironment->LocalEcho)
                 {
@@ -127,7 +184,6 @@ void Terminal(ISP_ENVIRONMENT *IspEnvironment)
                 SendComPort(IspEnvironment, buffer);
             }
         }
-        while (ch != 0x1b);
 
         DebugPrintf(1, "\n\nTerminal stopped\n\n");
         fflush(stdout);
